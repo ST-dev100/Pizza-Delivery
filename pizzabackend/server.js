@@ -1,13 +1,49 @@
-const express = require("express")
+const db = require("./db/db")
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+const pizzaRoutes = require('./routes/pizzaRoutes');
+const roleRoutes = require("./routes/roleRoutes"); 
+require('dotenv').config();             
 
-const app = express()
+const userRoutes = require('./routes/userRoutes'); // Import user routes
 
-app.get('/',(req,res)=>{
-    res.json({a:"bbb"})
+const orderRoutes = require('./routes/orders'); // Import order routes
+
+const employeeRoutes = require('./routes/employeeRoutes');// Import Employee routes
+
+const app = express();
+ 
+// Middleware 
+app.use(cookieParser());  
+// CORS configuration  
+const corsOptions = {     
+  origin: ['http://localhost:3000','https://pizza-order-kappa.vercel.app'], // Replace with your frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'], // Specify allowed methods
+  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+};
+  
+// Use the CORS middleware
+app.use(cors(corsOptions));  
+app.use(bodyParser.json()); // For parsing application/json
+
+//test route
+app.get('',(req,res)=>{
+    res.json({name:"simon"})
 })
-app.listen(3000,()=>{
-    console.log("hello")
-})
+// User routes
+app.use('/api/users', userRoutes);
+// Register the pizza routes
+app.use('/api/pizzas', pizzaRoutes);                           
+//order
+app.use('/api/orders', orderRoutes);  
+        
+app.use('/api/employees', employeeRoutes);
 
-// Export the serverless function
-module.exports = app;
+app.use('/api',roleRoutes);
+// Start the server   
+const PORT = process.env.PORT || 5000; 
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);  
+}); 
