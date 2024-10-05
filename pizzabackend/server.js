@@ -17,9 +17,9 @@ const app = express();
  
 // Middleware 
 app.use(cookieParser());  
-// CORS configuration  
+// CORS configuration   
 const corsOptions = {     
-  origin: ['http://localhost:3000','https://pizza-order-kappa.vercel.app'], // Replace with your frontend URL
+  origin: 'https://pizza-order-kappa.vercel.app', // Replace with your frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'], // Specify allowed methods
   credentials: true, // Allow credentials (cookies, authorization headers, etc.)
 };
