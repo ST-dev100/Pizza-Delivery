@@ -16,16 +16,16 @@ const authenticateUser = require('../middleware/authMiddleware')
 router.post("/roles",authenticateUser(), createRole);
 
 // Route to get all roles
-router.get("/roles", getAllRoles);
+router.get("/roles",authenticateUser(), getAllRoles);      
 
 // Route to get a role by UUID
-router.get("/roles/:id", getRoleById);
+router.get("/roles/:id", authenticateUser(),getRoleById);
 
-// Route to update a role by UUID
-router.put("/roles/:id", updateRoleById);
+// Route to update a role by UUID 
+router.put("/roles/:id", authenticateUser(),updateRoleById); 
 
-router.patch('/roles/:id/active', updateRoleActiveStatus);
+router.patch('/roles/:id/active', authenticateUser(),updateRoleActiveStatus);
 // Route to delete a role by UUID
-router.delete("/roles/:id", deleteRoleById);
+router.delete("/roles/:id", authenticateUser(),deleteRoleById);
 
 module.exports = router;

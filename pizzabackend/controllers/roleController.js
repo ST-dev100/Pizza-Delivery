@@ -1,5 +1,6 @@
 // roleHandlers.js
 const pool = require('../db/db'); // Assuming you have a db.js for the PostgreSQL connection setup
+const { all } = require('../routes/pizzaRoutes');
  // PostgreSQL connection pool
 
 // Create a new role
@@ -18,7 +19,7 @@ const createRole = async (req, res) => {
         if (userResult.rows.length > 0) {
             // If email is found in users table with role 'super-admin', use it for createdBy
                 const newRole = await pool.query(
-            `INSERT INTO roles (rolename, permissions, authorname, createdBy) 
+            `INSERT INTO roles (rolename, permissions, authorname, createdby) 
             VALUES ($1, $2, $3, $4) 
             RETURNING *`,
             [name, permissions, req.user.email, req.user.id]
@@ -28,13 +29,13 @@ const createRole = async (req, res) => {
         }
         else{
                 const employeeResult = await pool.query(
-                `SELECT createdBy FROM public.employees WHERE email = $1`,
+                `SELECT createdby FROM public.employees WHERE email = $1`,
                 [req.user.email]
             );
 
             if (employeeResult.rows.length > 0) {
                 // If found in employees, get the createdBy value from the found employee
-                createdBy = employeeResult.rows[0].createdBy;
+                createdBy = employeeResult.rows[0].createdby;
                 const newRole = await pool.query(
                   `INSERT INTO roles (rolename, permissions, authorname, createdby) 
                    VALUES ($1, $2, $3, $4) 
@@ -64,28 +65,40 @@ const createRole = async (req, res) => {
     }
   };
 
-// Get all roles
+// Get all roles 
 const getAllRoles = async (req, res) => {
+  console.log("Requested user ID:", req.user.id); // Log the requested user ID
   try {
-    const allRoles = await pool.query("SELECT * FROM roles");
+    const allRoles = await pool.query(
+      "SELECT * FROM roles WHERE createdby = $1",
+      [req.user.id]
+    );
+    console.log("Retrieved roles:", allRoles.rows); // Log the retrieved roles
     res.json(allRoles.rows);
   } catch (error) {
-    console.error(error.message);
+    console.error("Error fetching roles:", error.message);
     res.status(500).json({ error: "Failed to fetch roles" });
   }
 };
+
 
 // Get a role by UUID
 const getRoleById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const role = await pool.query("SELECT * FROM roles WHERE uuid = $1", [id]);
+    // Query to select the role by UUID, ensuring it was created by the logged-in user
+    const role = await pool.query(
+      "SELECT * FROM roles WHERE uuid = $1 AND createdby = $2", 
+      [id, req.user.id]
+    );
 
+    // Check if no role was found or it wasn't created by the user
     if (role.rows.length === 0) {
-      return res.status(404).json({ error: "Role not found" });
+      return res.status(404).json({ error: "Role not found or not created by the user" });
     }
 
+    // Return the role details
     res.json(role.rows[0]);
   } catch (error) {
     console.error(error.message);
@@ -102,13 +115,13 @@ const updateRoleById = async (req, res) => {
     const updatedRole = await pool.query(
       `UPDATE roles 
        SET rolename = $1, permissions = $2, authorname = $3, active = $4, updatedat = CURRENT_TIMESTAMP 
-       WHERE uuid = $5 
+       WHERE uuid = $5 AND createdby = $6 
        RETURNING *`,
-      [name, permissions, authorname, active, id]
+      [name, permissions, authorname, active, id, req.user.id] // Include createdby check
     );
 
     if (updatedRole.rows.length === 0) {
-      return res.status(404).json({ error: "Role not found" });
+      return res.status(404).json({ error: "Role not found or not created by the user" });
     }
 
     res.json(updatedRole.rows[0]);
@@ -124,12 +137,12 @@ const deleteRoleById = async (req, res) => {
 
   try {
     const deletedRole = await pool.query(
-      "DELETE FROM roles WHERE uuid = $1 RETURNING *",
-      [id]
+      "DELETE FROM roles WHERE uuid = $1 AND createdby = $2 RETURNING *",
+      [id, req.user.id] // Include createdby check
     );
 
     if (deletedRole.rows.length === 0) {
-      return res.status(404).json({ error: "Role not found" });
+      return res.status(404).json({ error: "Role not found or not created by the user" });
     }
 
     res.json({ message: "Role deleted successfully" });
@@ -146,9 +159,9 @@ const updateRoleActiveStatus = async (req, res) => {
       const updatedRole = await pool.query(
         `UPDATE roles 
          SET active = $1, updatedat = CURRENT_TIMESTAMP 
-         WHERE uuid = $2 
+         WHERE uuid = $2 AND createdby = $3 
          RETURNING *`,
-        [active, id]
+        [active, id, req.user.id] // Include createdby condition
       );
   
       if (updatedRole.rows.length === 0) {
@@ -161,6 +174,8 @@ const updateRoleActiveStatus = async (req, res) => {
       res.status(500).json({ error: "Failed to update active status" });
     }
   };
+
+ 
 module.exports = {
   createRole,
   updateRoleActiveStatus,

@@ -53,5 +53,57 @@ exports.createPizza = async (req, res) => {
       success: false,
       message: 'Server error',
     });
+  }    
+};
+
+// Function to get all pizzas
+exports.getAllPizzas = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        pizza.*, 
+        users.image_url, 
+        users.restaurant_name 
+      FROM 
+        pizza                  
+      JOIN 
+        users  
+      ON 
+        pizza.createdby = users.uuid`; // Adjust based on your table structure
+
+    const result = await pool.query(query);
+    return res.status(200).json(result.rows); // Return all pizzas with restaurant names
+  } catch (error) {
+    console.error('Error retrieving pizzas:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
   }
 };
+
+
+// Function to get a pizza by ID
+exports.getPizzaById = async (req, res) => {
+  const { id } = req.params; // Get the pizza ID from the request parameters
+  try {
+    const result = await pool.query(`SELECT * FROM pizza WHERE uuid = $1`, [id]); // Use parameterized query for security
+    if (result.rows.length > 0) {
+      return res.status(200).json(result.rows[0]); // Return the pizza if found
+    } else {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Pizza not found',
+      });
+    }
+  } catch (error) {
+    console.error('Error retrieving pizza:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+};
+
+
+

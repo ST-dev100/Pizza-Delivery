@@ -8,19 +8,19 @@ exports.createEmployee = async (req, res) => {
     try { 
         let createdBy = null;
 
-    //     // First, check if the email exists in the users table with the role 'super-admin'
-        const userResult = await db.query(
-            `SELECT email FROM public.users WHERE email = $1 AND rolename = 'super-admin'`,
-            [req.user.email]
-        );
+    //   // Check if the user is a 'super-admin' in the users table by uuid
+    const userResult = await db.query(
+        `SELECT uuid FROM public.users WHERE uuid = $1 AND rolename = 'super-admin'`,
+        [req.user.id]
+      );
 
         if (userResult.rows.length > 0) {
             // If email is found in users table with role 'super-admin', use it for createdBy
-            createdBy = userResult.rows[0].email;
+            createdBy = userResult.rows[0].uuid;
             const hashedPassword = await bcrypt.hash(password, 10);
 
             const result = await db.query(
-                `INSERT INTO public.employees (name, phone_number, email, rolename, password, createdBy, role_id)
+                `INSERT INTO public.employees (name, phone_number, email, rolename, password, createdby, role_id)
                  VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
                 [name, phone_number, email, rolename, hashedPassword, createdBy, role_id]
               );
@@ -33,16 +33,16 @@ exports.createEmployee = async (req, res) => {
         else {
     //         // If not in users, check the employees table for the email
             const employeeResult = await db.query(
-                `SELECT createdBy FROM public.employees WHERE email = $1`,
-                [req.user.email]
+                `SELECT createdby FROM public.employees WHERE uuid = $1`,
+                [req.user.id]
             );
 
-            if (employeeResult.rows.length > 0) {
+            if (employeeResult.rows.length > 0) { 
                 // If found in employees, get the createdBy value from the found employee
-                createdBy = employeeResult.rows[0].createdBy;
+                createdBy = employeeResult.rows[0].createdby;
                 const hashedPassword = await bcrypt.hash(password, 10);
                 const result = await db.query(
-                    `INSERT INTO public.employees (name, phone_number, email, rolename, password, createdBy, role_id)
+                    `INSERT INTO public.employees (name, phone_number, email, rolename, password, createdby, role_id)
                      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
                     [name, phone_number, email, rolename, hashedPassword, createdBy, role_id]
                   );
@@ -63,17 +63,22 @@ exports.createEmployee = async (req, res) => {
 };
 
 
-// Get all employees
+// Get all employees created by the current user
 exports.getAllEmployees = async (req, res) => {
     try {
-        console.log(req.user)
-        const result = await db.query(`SELECT * FROM public.employees`);
+        console.log(req.user);
+        const result = await db.query(
+            `SELECT * FROM public.employees WHERE createdby = $1`,
+            [req.user.id] // Ensure we're only fetching employees created by the current user
+        );
+        
         res.status(200).json(result.rows);
     } catch (error) {
         console.error("Error fetching employees:", error.message);
         res.status(500).json({ error: "Failed to fetch employees" });
     }
-};  
+};
+ 
 
 // Update the 'active' status of an employee
 exports.updateEmployee = async (req, res) => {
@@ -83,10 +88,10 @@ exports.updateEmployee = async (req, res) => {
     try {
         const result = await db.query(
             `UPDATE public.employees
-            SET active = $1,
-            updatedAt = CURRENT_TIMESTAMP
-            WHERE uuid = $2 RETURNING *`,
-            [active, id]
+             SET active = $1,
+                 updatedat = CURRENT_TIMESTAMP
+             WHERE uuid = $2 AND createdby = $3 RETURNING *`,
+            [active, id, req.user.id] // Ensure the employee was created by the current user
         );
 
         if (result.rowCount === 0) {
@@ -108,8 +113,11 @@ exports.updateEmployee = async (req, res) => {
 exports.deleteEmployee = async (req, res) => {
     const { id } = req.params; // Assuming id is the UUID
     try {
-        const result = await db.query(`DELETE FROM public.employees WHERE uuid = $1`, [id]);
-        console.log(result)
+        const result = await db.query(
+            `DELETE FROM public.employees 
+             WHERE uuid = $1 AND createdby = $2`,
+            [id, req.user.uuid] // Ensure the employee was created by the current user
+        );
         if (result.rowCount === 0) {
             return res.status(404).json({ error: "Employee not found" });
         }

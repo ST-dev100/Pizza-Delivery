@@ -6,12 +6,12 @@ const authenticateUser = require('../middleware/authMiddleware')
 router.post('/',authenticateUser(),employeeController.createEmployee);
 
 // Get all employees
-router.get('/', employeeController.getAllEmployees);
+router.get('/', authenticateUser(),employeeController.getAllEmployees); 
 
 // Update an employee by UUID
-router.put('/:id', employeeController.updateEmployee);
+router.put('/:id', authenticateUser(),employeeController.updateEmployee);
 
 // Delete an employee by UUID
-router.delete('/:id', employeeController.deleteEmployee);
+router.delete('/:id', authenticateUser(),employeeController.deleteEmployee);
 
-module.exports = router;          
+module.exports = router;            

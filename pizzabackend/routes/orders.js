@@ -2,20 +2,22 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController'); // Import the controller
+const authenticateUser = require('../middleware/authMiddleware');
 
 // Create a new order
-router.post('/', orderController.createOrder);
+router.post('/',authenticateUser(), orderController.createOrder);    
 
 // Get all orders
-router.get('/', orderController.getAllOrders);
-
+router.get('/', authenticateUser(),orderController.getAllOrders);
+ 
 // Get order by ID
-router.get('/:id', orderController.getOrderById);
+router.get('/:id', orderController.getOrderById);  
 
-// Update an order
-router.put('/:id', orderController.updateOrder);
+// Update an    
+router.put('/:id',authenticateUser(), orderController.updateOrder);
 
 // Delete an order
-router.delete('/:id', orderController.deleteOrder);
+router.delete('/:id',authenticateUser(), orderController.deleteOrder);
 
+router.put('/order/:id/status',authenticateUser(),orderController.updateOrderStatus)
 module.exports = router; 

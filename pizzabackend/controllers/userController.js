@@ -6,7 +6,7 @@ const { use } = require('../routes/pizzaRoutes');
 const signupSuperAdmin = async (req, res) => {
   const { name, email, password, phone_number, restaurant_name, location, image_url } = req.body;
   //  console.log({name,email,password,phone_number,restaurant_name,location,image_url})
-  try {
+  try { 
     // Validate the required fields
     if (!name || !email || !password || !restaurant_name) {
       return res.status(400).json({ error: "Please provide all required fields." });
@@ -131,7 +131,7 @@ const signupNormalUser = async (req, res) => {
         location,
         roleName,
         grantedRole
-      ]);
+      ]);   
   
       const newUser = newUserResult.rows[0];
   
@@ -145,7 +145,7 @@ const signupNormalUser = async (req, res) => {
       res.status(500).json({ message: 'Server error' });
     }
   };
-  
+   
 // Login function
 const loginUser = async (req, res) => {
     const { email, password } = req.body; 
@@ -313,7 +313,7 @@ const updateUser = async (req, res) => {
   };
   // Delete a user
 const deleteUser = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params;   
   
     try {
       const deleteUserQuery = 'DELETE FROM users WHERE id = $1 RETURNING id';
@@ -329,7 +329,22 @@ const deleteUser = async (req, res) => {
       res.status(500).json({ message: 'Server error' });
     }
   };
-
+  const logoutUser = (req, res) => {
+    try {
+      // Clear the JWT token cookie
+      res.clearCookie('tokenPizza', {
+        httpOnly: true,  // Ensure the cookie cannot be accessed via client-side JavaScript
+        secure: process.env.NODE_ENV === 'production',  // Use secure cookies in production
+        sameSite: 'strict'  // Protect against CSRF attacks
+      });
+      
+      // Send response to confirm logout
+      return res.status(200).json({ message: 'Logout successful' });
+    } catch (error) {
+      console.error('Error logging out:', error);
+      return res.status(500).json({ message: 'Server error during logout' });
+    }
+  };
   module.exports = {
     signupSuperAdmin,
     signupUser,
@@ -339,4 +354,5 @@ const deleteUser = async (req, res) => {
     getUserById,
     updateUser,
     deleteUser,
+    logoutUser
   };

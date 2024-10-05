@@ -34,12 +34,12 @@ app.get('',(req,res)=>{
 })
 // User routes
 app.use('/api/users', userRoutes);
-// Register the pizza routes
+// Register the pizza routes  
 app.use('/api/pizzas', pizzaRoutes);                           
-//order
-app.use('/api/orders', orderRoutes);  
+//order 
+app.use('/api/orders', orderRoutes);     
         
-app.use('/api/employees', employeeRoutes);
+app.use('/api/employees', employeeRoutes); 
 
 app.use('/api',roleRoutes);
 // Start the server   
