@@ -233,7 +233,8 @@ const loginUser = async (req, res) => {
       res.cookie('tokenPizza', token, {
         httpOnly: true,  // Prevents client-side access to the cookie
         secure: process.env.NODE_ENV === 'production',  // Use secure cookies in production
-        maxAge: 24 * 60 * 60 * 1000  // 1 day in milliseconds
+        maxAge: 24 * 60 * 60 * 1000,  // 1 day in milliseconds
+        sameSite: 'None', // Allow cross-site cookie sharing
       });
   
       // Send response
