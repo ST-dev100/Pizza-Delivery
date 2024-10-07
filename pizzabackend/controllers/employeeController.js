@@ -112,11 +112,12 @@ exports.updateEmployee = async (req, res) => {
 // Delete an employee
 exports.deleteEmployee = async (req, res) => {
     const { id } = req.params; // Assuming id is the UUID
+    console.log("delted",id)
     try {
         const result = await db.query(
             `DELETE FROM public.employees 
              WHERE uuid = $1 AND createdby = $2`,
-            [id, req.user.uuid] // Ensure the employee was created by the current user
+            [id, req.user.id] // Ensure the employee was created by the current user
         );
         if (result.rowCount === 0) {
             return res.status(404).json({ error: "Employee not found" });

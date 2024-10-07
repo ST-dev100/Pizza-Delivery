@@ -57,9 +57,13 @@ exports.createPizza = async (req, res) => {
 };
 
 // Function to get all pizzas
+// Function to get all pizzas or search pizzas by name, restaurant name, or toppings
 exports.getAllPizzas = async (req, res) => {
   try {
-    const query = `
+    const { pizza_name, restaurant_name} = req.query;
+
+    // Base query to fetch pizzas with user details
+    let query = `
       SELECT 
         pizza.*, 
         users.image_url, 
@@ -69,10 +73,34 @@ exports.getAllPizzas = async (req, res) => {
       JOIN 
         users  
       ON 
-        pizza.createdby = users.uuid`; // Adjust based on your table structure
+        pizza.createdby = users.uuid
+    `;
 
-    const result = await pool.query(query);
-    return res.status(200).json(result.rows); // Return all pizzas with restaurant names
+    // Initialize an array for query parameters
+    const queryParams = [];
+    
+    // Append conditions based on the presence of query parameters
+    let conditions = [];
+
+    if (pizza_name) {
+      conditions.push(`pizza.pizza_name ILIKE $${queryParams.length + 1}`); // Pizza name search
+      queryParams.push(`%${pizza_name}%`); // Add to query parameters
+    }
+    
+    if (restaurant_name) {
+      conditions.push(`users.restaurant_name ILIKE $${queryParams.length + 1}`); // Restaurant name search
+      queryParams.push(`%${restaurant_name}%`); // Add to query parameters
+    }
+    
+    
+
+    // If there are any conditions, append them to the query
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    const result = await pool.query(query, queryParams); // Execute query with parameters
+    return res.status(200).json(result.rows); // Return the result
   } catch (error) {
     console.error('Error retrieving pizzas:', error);
     return res.status(500).json({
@@ -81,6 +109,7 @@ exports.getAllPizzas = async (req, res) => {
     });
   }
 };
+
 
 
 // Function to get a pizza by ID

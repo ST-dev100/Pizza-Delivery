@@ -17,7 +17,7 @@ router.post('/signup/user', signupUser);
 router.post('/signup/normal', signupNormalUser);
 
 // Login and logout routes
-router.post('/login', loginUser);
+router.post('/login', loginUser);  
 router.post('/logout', logoutUser); 
 
 router.get('/users', getUsers);

@@ -164,7 +164,7 @@ const loginUser = async (req, res) => {
       `;
       
       const userResult = await pool.query(userQuery, [email]);
-      console.log(userResult.rows[0]);
+      console.log("employee",userResult.rows[0]);
       
       if (userResult.rows.length === 0) {
         return res.status(400).json({ message: 'Invalid email or password' });
@@ -188,7 +188,13 @@ const loginUser = async (req, res) => {
       };
 
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
-      
+            // Set JWT in an HTTP-only cookie
+            res.cookie('tokenPizza', token, {
+              httpOnly: true,  // Prevents client-side access to the cookie
+              secure: process.env.NODE_ENV === 'production',  // Use secure cookies in production
+              maxAge: 24 * 60 * 60 * 1000,  // 1 day in milliseconds
+              sameSite: 'None', // Allow cross-site cookie sharing
+            });
       // If login is successful, send user details along with role
       return res.status(200).json({
         message: 'Login successful',
@@ -203,10 +209,10 @@ const loginUser = async (req, res) => {
           permissions: user.permissions, // Role-related data from the roles table
         },
       });
-      
+       
       }
   
-      const user = userResult.rows[0];
+      const user = userResult.rows[0]; 
   
       // Check if the password is correct
       const isPasswordValid = await bcrypt.compare(password, user.password);

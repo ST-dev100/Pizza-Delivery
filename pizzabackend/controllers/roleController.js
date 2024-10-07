@@ -109,15 +109,15 @@ const getRoleById = async (req, res) => {
 // Update a role by UUID
 const updateRoleById = async (req, res) => {
   const { id } = req.params;
-  const { name, permissions, authorname, active } = req.body;
+  const { name, permissions,  active } = req.body;
 
   try {
     const updatedRole = await pool.query(
       `UPDATE roles 
-       SET rolename = $1, permissions = $2, authorname = $3, active = $4, updatedat = CURRENT_TIMESTAMP 
-       WHERE uuid = $5 AND createdby = $6 
+       SET rolename = $1, permissions = $2, active = $3, updatedat = CURRENT_TIMESTAMP 
+       WHERE uuid = $4 AND createdby = $5 
        RETURNING *`,
-      [name, permissions, authorname, active, id, req.user.id] // Include createdby check
+      [name, permissions, active, id, req.user.id] // Include createdby check
     );
 
     if (updatedRole.rows.length === 0) {
@@ -154,7 +154,7 @@ const deleteRoleById = async (req, res) => {
 const updateRoleActiveStatus = async (req, res) => {
     const { id } = req.params;
     const { active } = req.body;
-  
+   
     try {
       const updatedRole = await pool.query(
         `UPDATE roles 

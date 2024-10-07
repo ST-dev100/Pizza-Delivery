@@ -12,12 +12,12 @@ const userRoutes = require('./routes/userRoutes'); // Import user routes
 const orderRoutes = require('./routes/orders'); // Import order routes
 
 const employeeRoutes = require('./routes/employeeRoutes');// Import Employee routes
-
-const app = express();
  
-// Middleware 
+const app = express(); 
+  
+// Middleware      
 app.use(cookieParser());  
-// CORS configuration  
+// CORS configuration    
 const corsOptions = {     
   origin: ['http://localhost:3000','https://pizza-order-kappa.vercel.app'], // Replace with your frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'], // Specify allowed methods
@@ -39,7 +39,7 @@ app.use('/api/pizzas', pizzaRoutes);
 //order 
 app.use('/api/orders', orderRoutes);     
         
-app.use('/api/employees', employeeRoutes); 
+app.use('/api/employees', employeeRoutes);    
 
 app.use('/api',roleRoutes);
 // Start the server   
