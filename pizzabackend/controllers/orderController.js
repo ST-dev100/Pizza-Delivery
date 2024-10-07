@@ -36,24 +36,48 @@ const getAllOrders = async (req, res) => {
     const userId = req.user.id; // Get the user's ID from the request
 
     // Step 1: Retrieve all pizza_ids from orders
-    const pizzasResult = await pool.query(`
+    let pizzasResult = await pool.query(`
       SELECT o.* 
       FROM orders o 
       JOIN pizza p ON o.pizza_id = p.uuid 
       WHERE p.createdby = $1
     `, [userId]);
-  
+
+    // Step 2: If no orders found, search for req.user.id in the employees table
     if (pizzasResult.rows.length === 0) {
-      return res.status(404).json({ message: 'No orders found for pizzas created by this user' });
+      const employeesResult = await pool.query(`
+        SELECT createdby 
+        FROM employees 
+        WHERE uuid = $1
+      `, [userId]);
+
+      if (employeesResult.rows.length > 0) {
+        const createdBy = employeesResult.rows[0].createdby;
+
+        // Step 3: Query orders again using createdby from employees table
+        pizzasResult = await pool.query(`
+          SELECT o.* 
+          FROM orders o 
+          JOIN pizza p ON o.pizza_id = p.uuid 
+          WHERE p.createdby = $1
+        `, [createdBy]);
+
+        if (pizzasResult.rows.length === 0) {
+          return res.status(404).json({ message: 'No orders found for pizzas created by this employee' });
+        }
+      } else {
+        return res.status(404).json({ message: 'User not found in employees table' });
+      }
     }
 
-    // Step 2: Return orders where pizza_id's creator matches req.user.id
+    // Return orders where pizza_id's creator matches req.user.id or employee's createdby field
     res.status(200).json(pizzasResult.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 };
+
 
 
 // Get order by ID

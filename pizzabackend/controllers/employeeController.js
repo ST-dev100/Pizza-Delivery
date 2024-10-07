@@ -60,48 +60,106 @@ exports.createEmployee = async (req, res) => {
         console.error("Error creating employee:", error.message);
         res.status(500).json({ error: "Failed to create employee" });
     }
-};
+}; 
 
 
 // Get all employees created by the current user
 exports.getAllEmployees = async (req, res) => {
     try {
-        console.log(req.user);
-        const result = await db.query(
-            `SELECT * FROM public.employees WHERE createdby = $1`,
-            [req.user.id] // Ensure we're only fetching employees created by the current user
+      console.log(req.user);
+      
+      // Step 1: First attempt to retrieve employees created by req.user.id
+      let result = await db.query(
+        `SELECT * FROM public.employees WHERE createdby = $1`,
+        [req.user.id]
+      );
+  
+      // Step 2: If no employees are found, search for req.user.id in the employees table
+      if (result.rows.length === 0) {
+        const employeeResult = await db.query(
+          `SELECT createdby FROM public.employees WHERE uuid = $1`,
+          [req.user.id]
         );
-        
-        res.status(200).json(result.rows);
+  
+        // If req.user.id is found in employees table, get the createdby field
+        if (employeeResult.rows.length > 0) {
+          const createdBy = employeeResult.rows[0].createdby;
+  
+          // Step 3: Fetch all employees where createdby is the retrieved value
+          result = await db.query(
+            `SELECT * FROM public.employees WHERE createdby = $1`,
+            [createdBy]
+          );
+  
+          // If still no employees found, return an appropriate message
+          if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No employees found for this user' });
+          }
+        } else {
+          return res.status(404).json({ message: 'User not found in employees table' });
+        }
+      }
+  
+      // Step 4: Return the found employees
+      res.status(200).json(result.rows);
     } catch (error) {
-        console.error("Error fetching employees:", error.message);
-        res.status(500).json({ error: "Failed to fetch employees" });
+      console.error("Error fetching employees:", error.message);
+      res.status(500).json({ error: "Failed to fetch employees" });
     }
-};
+  };
+  
  
 
 // Update the 'active' status of an employee
 exports.updateEmployee = async (req, res) => {
     const { id } = req.params; // Assuming id is the UUID
     const { active } = req.body; // Expecting only 'active' in the request body
-    console.log(req.body)
+    console.log("Update request body:", req.body);
+
     try {
-        const result = await db.query(
+        // Step 1: Attempt to update the employee's active status
+        let result = await db.query(
             `UPDATE public.employees
              SET active = $1,
                  updatedat = CURRENT_TIMESTAMP
              WHERE uuid = $2 AND createdby = $3 RETURNING *`,
-            [active, id, req.user.id] // Ensure the employee was created by the current user
+            [active, id, req.user.id]
         );
 
+        // Step 2: If no employee was updated, check the employees table for createdby field
         if (result.rowCount === 0) {
-            return res.status(404).json({ error: "Employee not found" });
+            const employeeResult = await db.query(
+                `SELECT createdby FROM public.employees WHERE uuid = $1`,
+                [req.user.id]
+            );
+
+            // Step 3: If a createdby field is found, use it to attempt the update again
+            if (employeeResult.rows.length > 0) {
+                const createdBy = employeeResult.rows[0].createdby;
+
+                result = await db.query(
+                    `UPDATE public.employees
+                     SET active = $1,
+                         updatedat = CURRENT_TIMESTAMP
+                     WHERE uuid = $2 AND createdby = $3 RETURNING *`,
+                    [active, id, createdBy]
+                );
+
+                // Step 4: If still no employee was updated, return a not found message
+                if (result.rowCount === 0) {
+                    return res.status(404).json({ error: "Employee not found or not created by the user or their creator" });
+                }
+            } else {
+                // If no createdby field is found, return a not found message
+                return res.status(404).json({ error: "User not found in employees table" });
+            }
         }
 
+        // Step 5: Return success message if the employee's active status was successfully updated
         res.status(200).json({
             message: "Employee 'active' status updated successfully",
             employee: result.rows[0],
-        });   
+        });
     } catch (error) {
         console.error("Error updating employee:", error.message);
         res.status(500).json({ error: "Failed to update employee's active status" });
@@ -109,23 +167,52 @@ exports.updateEmployee = async (req, res) => {
 };
 
 
+
 // Delete an employee
 exports.deleteEmployee = async (req, res) => {
     const { id } = req.params; // Assuming id is the UUID
-    console.log("delted",id)
+    console.log("Attempting to delete employee with ID:", id);
+
     try {
-        const result = await db.query(
+        // Step 1: Attempt to delete the employee directly
+        let result = await db.query(
             `DELETE FROM public.employees 
              WHERE uuid = $1 AND createdby = $2`,
-            [id, req.user.id] // Ensure the employee was created by the current user
+            [id, req.user.id]
         );
+
+        // Step 2: If no employee was deleted, check the employees table for createdby field
         if (result.rowCount === 0) {
-            return res.status(404).json({ error: "Employee not found" });
+            const employeeResult = await db.query(
+                `SELECT createdby FROM public.employees WHERE uuid = $1`,
+                [req.user.id]
+            );
+
+            // Step 3: If a createdby field is found, use it to attempt the deletion again
+            if (employeeResult.rows.length > 0) {
+                const createdBy = employeeResult.rows[0].createdby;
+
+                result = await db.query(
+                    `DELETE FROM public.employees 
+                     WHERE uuid = $1 AND createdby = $2`,
+                    [id, createdBy]
+                );
+
+                // Step 4: If still no employee was deleted, return a not found message
+                if (result.rowCount === 0) {
+                    return res.status(404).json({ error: "Employee not found or not created by the user or their creator" });
+                }
+            } else {
+                // If no createdby field is found, return a not found message
+                return res.status(404).json({ error: "User not found in employees table" });
+            }
         }
 
+        // Step 5: Return success message if the employee was successfully deleted
         res.status(204).json({ message: "Employee deleted successfully" });
     } catch (error) {
         console.error("Error deleting employee:", error.message);
         res.status(500).json({ error: "Failed to delete employee" });
     }
 };
+

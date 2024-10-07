@@ -7,7 +7,6 @@ exports.createPizza = async (req, res) => {
 
     // Ensure `topping` is an array with truthy values
     toppings = Object.keys(toppings).filter(key => toppings[key]);
-
     let createdBy = null;
     // Check if the logged-in user is a 'super-admin'
     const userResult = await pool.query(
@@ -27,13 +26,13 @@ exports.createPizza = async (req, res) => {
     } else {
       // If not a 'super-admin', check if the user exists in the employees table
       const employeeResult = await pool.query(
-        `SELECT createdBy FROM public.employees WHERE email = $1`,
+        `SELECT createdby FROM public.employees WHERE email = $1`,
         [req.user.email]
       );
 
       if (employeeResult.rows.length > 0) {
-        createdBy = employeeResult.rows[0].createdBy;
-
+        createdBy = employeeResult.rows[0].createdby;
+        console.log("createdBy",createdBy)
         const result = await pool.query(
           `INSERT INTO pizza (pizza_name, topping, price, pizza_url, user_id, authored_by, createdby)
            VALUES ($1, $2, $3, $4, $5, $6, $7)

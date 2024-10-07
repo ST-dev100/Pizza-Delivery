@@ -14,8 +14,8 @@ const orderRoutes = require('./routes/orders'); // Import order routes
 const employeeRoutes = require('./routes/employeeRoutes');// Import Employee routes
  
 const app = express(); 
-  
-// Middleware      
+   
+// Middleware       
 app.use(cookieParser());  
 // CORS configuration    
 const corsOptions = {     
